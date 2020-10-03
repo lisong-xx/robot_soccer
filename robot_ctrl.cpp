@@ -1,8 +1,10 @@
+
 #include "robot_ctrl/robot_ctrl.h"
 #include "geometry_msgs/Quaternion.h" 
 #include "geometry_msgs/Point.h" 
 #include "tf/transform_datatypes.h"//转换函数头文件 
 #include <cmath>
+//#include <iostream.h>
 
 // max vel: 1.2m/s
 // max ang:10.0rad/s
@@ -103,6 +105,7 @@ void Robot::Robot2Ball(int n)
     // Todo: write you code here
     double x_l=10.5;
     double R;
+    double a,b;
     double k1,k2;
     double x0,y0;
     double expected_rot;
@@ -113,9 +116,10 @@ void Robot::Robot2Ball(int n)
     if (n == 1) 
     {
       ball_x_last = ball_x;
-      ball_y_last =ball_y;
+      ball_y_last = ball_y;
     }
-    if ( sqrt( pow((ball_x_last-ball_x),2) + pow((ball_y_last-ball_y),2) ) <= e )
+   // cout << sqrt( pow((ball_x_last-ball_x),2) + pow((ball_y_last-ball_y),2) )<<endl;
+    if ( sqrt( pow((ball_x_last - ball_x),2) + pow((ball_y_last - ball_y),2) ) <= e )
     {
       if (ball_y != 0 && (ball_x-robot_x) != 0)
       {
@@ -126,31 +130,82 @@ void Robot::Robot2Ball(int n)
            a=ball_x * k2 - (robot_x + ball_x)/2*k1 + ball_y - (robot_y + ball_y)/2;
            b=k1-k2;
          
-         x0=-a/b;
-         y0=-(x0 - ball_x)*k2 + ball_y;
+           x0=-a/b;
+           y0=-(x0 - ball_x)*k2 + ball_y;
          
-         R=sqrt( pow((x0 - ball_x),2) + pow((y0 - ball_y),2) );
+           R=sqrt( pow((x0 - ball_x),2) + pow((y0 - ball_y),2) );
          
-         expected_rot=PI/2+atan((robot_y - y0) / (robot_x - x0));
-         if ( sqrt( pow((expected_rot-robot_rot),2) ) <= e )
-           {
-              velocity=0.8;
-              angular=
-           }
-         else
-           {
-              
-           }
+           expected_rot=PI/2+atan((robot_y - y0) / (robot_x - x0));
+           if ( fabs(expected_rot-robot_rot) <= e )
+             {
+                velocity=0.8;
+                angular= 2*velocity/R;
+             }
+           else
+             {
+                velocity=0;
+                angular=orientation(n,robot_rot,expected_rot);
+             }
          }
          else
          {
-          }
+            velocity=0;
+            angular=0;
+         }
+      }
+      else if (ball_y == 0 && (ball_x-robot_x) != 0)
+      {
+         k1 = (ball_y - robot_y) / (ball_x - robot_x);
+         x0=ball_x;
+         y0=-k1*(x0-(ball_x+robot_x)/2)+(ball_y+robot_y)/2;
+         R=sqrt( pow((y0 - ball_y),2) );
+         expected_rot=-PI/2+atan((robot_y - y0) / (robot_x - x0));
+         if ( sqrt( pow((expected_rot-robot_rot),2) ) <= e )
+           {
+              velocity=0.8;
+              angular= velocity/R;
+           }
+         else
+           {
+              velocity=0;
+              angular=orientation(n,robot_rot,expected_rot);
+           }
+      }
+      else if (ball_y != 0 && (ball_x-robot_x) == 0)
+      {
+         k2 = (ball_x -x_l) / ball_y;
+         y0=(ball_y+robot_y)/2;
+         x0=(y0-ball_y)/k2+ball_x;
+         R=sqrt( pow((x0 - ball_x),2) + pow((y0 - ball_y),2) );
+         expected_rot=-PI/2+atan((robot_y - y0) / (robot_x - x0));
+         if ( sqrt( pow((expected_rot-robot_rot),2) ) <= e )
+           {
+              velocity=0.8;
+              angular= velocity/R;
+           }
+         else
+           {
+              velocity=0;
+              angular=orientation(n,robot_rot,expected_rot);
+           }
       }
       else
       {
+       x0=ball_x;
+       y0=(robot_y+ball_y)/2;
+       R=sqrt( pow((y0 - ball_y),2) );
+       expected_rot=-PI;
+       if ( sqrt( pow((expected_rot-robot_rot),2) ) <= e )
+           {
+              velocity=0.8;
+              angular= velocity/R;
+           }
+         else
+           {
+              velocity=0;
+              angular=orientation(n,robot_rot,expected_rot);
+           }
       }
-       
-       
     }
     else
     {
